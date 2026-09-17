@@ -19,7 +19,8 @@ export function Admin() {
 
   useEffect(() => {
     if (!db) return
-    db.isAdmin().then(setAuthed)
+    // 確認に失敗したら未ログイン扱いにする。ここで止まると画面が出ない。
+    db.isAdmin().then(setAuthed, () => setAuthed(false))
   }, [db])
 
   if (!db || authed === null) {

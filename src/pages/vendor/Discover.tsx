@@ -5,7 +5,6 @@ import { EventDetail } from '../../components/EventDetail'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { Button, EmptyState, Spinner } from '../../components/ui'
-import { eventStats } from '../../lib/format'
 import { loadHandled, markHandled, unmarkHandled } from '../../lib/profile'
 import { useStore } from '../../lib/store'
 import type { EventRecord } from '../../lib/types'
@@ -19,7 +18,7 @@ const SWIPE_VELOCITY = 520
  * 選択肢が並ぶほど人は決められなくなる（選択のパラドックス）ので、あえて積む。
  */
 export function Discover() {
-  const { events, applications, loading } = useStore()
+  const { events, loading, statsFor } = useStore()
   const toast = useToast()
 
   const [handled, setHandled] = useState(loadHandled)
@@ -32,9 +31,9 @@ export function Discover() {
     () =>
       events.filter((e) => {
         if (e.status !== 'open') return false
-        return !eventStats(e, applications).closed
+        return !statsFor(e).closed
       }),
-    [events, applications],
+    [events, statsFor],
   )
 
   const deck = useMemo(() => open.filter((e) => !handled[e.id]), [open, handled])
@@ -200,13 +199,13 @@ export function Discover() {
           )
         }
       >
-        {detail && <EventDetail event={detail} stats={eventStats(detail, applications)} />}
+        {detail && <EventDetail event={detail} stats={statsFor(detail)} />}
       </Sheet>
 
       {applyFor && (
         <ApplyForm
           event={applyFor}
-          stats={eventStats(applyFor, applications)}
+          stats={statsFor(applyFor)}
           onClose={() => setApplyFor(null)}
           onSubmitted={() => {
             consume(applyFor, 'attend')
@@ -240,14 +239,14 @@ function SwipeCard({
   onRight: () => void
   onTap: () => void
 }) {
-  const { applications } = useStore()
+  const { statsFor } = useStore()
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-260, 0, 260], [-9, 0, 9])
   const yesOpacity = useTransform(x, [30, 140], [0, 1])
   const noOpacity = useTransform(x, [-140, -30], [1, 0])
   const [exit, setExit] = useState<'left' | 'right' | null>(null)
 
-  const stats = useMemo(() => eventStats(event, applications), [event, applications])
+  const stats = useMemo(() => statsFor(event), [event, statsFor])
 
   return (
     <motion.div

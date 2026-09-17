@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { loadDb, type DataAdapter } from './db'
+import { eventStats, type EventStats } from './format'
 import { seedIfEmpty } from './seed'
 import type {
   ApplicationDraft,
@@ -21,6 +22,10 @@ interface StoreValue {
   db: DataAdapter | null
   events: EventRecord[]
   applications: ApplicationRecord[]
+  /** イベントIDごとの申込件数。 */
+  counts: Record<string, number>
+  /** 残枠・締切・社会的証明をまとめた導出値。 */
+  statsFor: (event: EventRecord) => EventStats
   loading: boolean
   error: string | null
   mode: 'local' | 'cloud'
@@ -47,15 +52,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DataAdapter | null>(null)
   const [events, setEvents] = useState<EventRecord[]>([])
   const [applications, setApplications] = useState<ApplicationRecord[]>([])
+  const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (!db) return
     try {
-      const [e, a] = await Promise.all([db.listEvents(), db.listApplications()])
+      // 申込一覧は主催者だけが読める。出店者では拒否されるのが正しい挙動
+      // なので、ここでの失敗は空配列として扱い、画面は止めない。
+      const [e, c, a] = await Promise.all([
+        db.listEvents(),
+        db.listApplicationCounts(),
+        db.listApplications().catch(() => [] as ApplicationRecord[]),
+      ])
       setEvents(e)
       setApplications(a)
+      setCounts(c)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -99,6 +112,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     db,
     events,
     applications,
+    counts,
+    statsFor: (event) => eventStats(event, applications, counts),
     loading,
     error,
     mode: db?.kind ?? 'local',

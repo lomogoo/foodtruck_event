@@ -7,6 +7,8 @@ const LS_KEY = 'mk.runtime-config'
 export interface RuntimeConfig {
   supabaseUrl: string
   supabaseAnonKey: string
+  /** true の間は接続情報があっても端末内ストレージを使う（動作確認用）。 */
+  useLocal: boolean
 }
 
 function readOverride(): Partial<RuntimeConfig> {
@@ -19,11 +21,19 @@ function readOverride(): Partial<RuntimeConfig> {
 
 const env = import.meta.env
 
+/**
+ * 既定の接続先。publishable キーは公開前提のキーで、実際の保護は
+ * Postgres 側の RLS が担うため、そのまま同梱してよい。
+ */
+const DEFAULT_SUPABASE_URL = 'https://tfkzsbwhvhgxbnnfwtou.supabase.co'
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_Ro1VwRK4o96IkyV6JC0q6w_vCjfFWYm'
+
 export function getConfig(): RuntimeConfig {
   const o = readOverride()
   return {
-    supabaseUrl: (o.supabaseUrl || env.VITE_SUPABASE_URL || '').trim(),
-    supabaseAnonKey: (o.supabaseAnonKey || env.VITE_SUPABASE_ANON_KEY || '').trim(),
+    supabaseUrl: (o.supabaseUrl || env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL).trim(),
+    supabaseAnonKey: (o.supabaseAnonKey || env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_KEY).trim(),
+    useLocal: o.useLocal === true,
   }
 }
 
@@ -37,7 +47,7 @@ export function clearConfig() {
 
 export function isCloudMode(): boolean {
   const c = getConfig()
-  return Boolean(c.supabaseUrl && c.supabaseAnonKey)
+  return !c.useLocal && Boolean(c.supabaseUrl && c.supabaseAnonKey)
 }
 
 /**

@@ -8,7 +8,7 @@ import {
 } from '../../components/ui'
 import { FIRE_LABEL, GAS_LABEL, POWER_LABEL, fmtEventDates, mm, totalWatt, yen, type EventStats } from '../../lib/format'
 import { uid } from '../../lib/db'
-import { loadProfile, saveProfile, type VendorProfile } from '../../lib/profile'
+import { loadProfile, recordSubmission, saveProfile, type VendorProfile } from '../../lib/profile'
 import { useStore } from '../../lib/store'
 import type { Appliance, Attachment, EventRecord, MenuItem } from '../../lib/types'
 
@@ -98,7 +98,7 @@ export function ApplyForm({
   const submit = async () => {
     setSubmitting(true)
     try {
-      await createApplication({
+      const created = await createApplication({
         eventId: event.id,
         attendance: 'attend',
         shopName: form.shopName.trim(),
@@ -123,6 +123,12 @@ export function ApplyForm({
         files: form.files,
         notes: form.notes,
         declineReason: '',
+      })
+      recordSubmission({
+        id: created.id,
+        eventId: event.id,
+        shopName: form.shopName.trim(),
+        createdAt: created.createdAt,
       })
       const { notes: _n, files: _f, ...profile } = form
       void _n

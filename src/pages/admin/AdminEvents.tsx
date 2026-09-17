@@ -3,7 +3,7 @@ import { EventDetail } from '../../components/EventDetail'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { Badge, Button, Card, EmptyState, FillBar, Segmented, Spinner } from '../../components/ui'
-import { STATUS_LABEL, eventStats, fmtEventDates, yen } from '../../lib/format'
+import { STATUS_LABEL, fmtEventDates, yen } from '../../lib/format'
 import { useStore } from '../../lib/store'
 import type { EventRecord } from '../../lib/types'
 import { EventEditor } from './EventEditor'
@@ -12,7 +12,7 @@ type Filter = 'all' | 'open' | 'draft' | 'closed'
 
 /** 主催者のイベント台帳。どのイベントがどれだけ埋まっているかを一覧で掴む。 */
 export function AdminEvents({ onOpenApplicants }: { onOpenApplicants: (eventId: string) => void }) {
-  const { events, applications, loading, deleteEvent, updateEvent } = useStore()
+  const { events, loading, statsFor, deleteEvent, updateEvent } = useStore()
   const toast = useToast()
   const [filter, setFilter] = useState<Filter>('all')
   const [editing, setEditing] = useState<EventRecord | 'new' | null>(null)
@@ -63,7 +63,7 @@ export function AdminEvents({ onOpenApplicants }: { onOpenApplicants: (eventId: 
       ) : (
         <div className="space-y-3">
           {list.map((e) => {
-            const s = eventStats(e, applications)
+            const s = statsFor(e)
             return (
               <Card key={e.id} className="overflow-hidden">
                 <div className="flex gap-3 p-4">
@@ -145,14 +145,14 @@ export function AdminEvents({ onOpenApplicants }: { onOpenApplicants: (eventId: 
       <EventEditor event={editing} onClose={() => setEditing(null)} />
 
       <Sheet open={Boolean(preview)} onClose={() => setPreview(null)} title="出店者に見える内容" size="full">
-        {preview && <EventDetail event={preview} stats={eventStats(preview, applications)} />}
+        {preview && <EventDetail event={preview} stats={statsFor(preview)} />}
       </Sheet>
 
       <Sheet open={Boolean(confirmDelete)} onClose={() => setConfirmDelete(null)} title="イベントを削除">
         <div className="space-y-4 pb-2">
           <p className="text-[14px] leading-relaxed text-muted">
             「{confirmDelete?.title}」と、このイベントに紐づく申込
-            {confirmDelete ? eventStats(confirmDelete, applications).applied : 0}件をすべて削除します。この操作は取り消せません。
+            {confirmDelete ? statsFor(confirmDelete).applied : 0}件をすべて削除します。この操作は取り消せません。
           </p>
           <div className="flex gap-2">
             <Button full onClick={() => setConfirmDelete(null)}>

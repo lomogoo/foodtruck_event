@@ -58,10 +58,20 @@ export interface EventStats {
   closed: boolean
 }
 
-export function eventStats(e: EventRecord, apps: ApplicationRecord[]): EventStats {
-  const applied = apps.filter(
-    (a) => a.eventId === e.id && a.attendance === 'attend' && a.status !== 'rejected' && a.status !== 'withdrawn',
-  ).length
+/**
+ * @param counts 申込件数の集計。出店者は申込行そのものを読めないので、
+ *               取得できている場合はこちらを優先する。
+ */
+export function eventStats(
+  e: EventRecord,
+  apps: ApplicationRecord[],
+  counts?: Record<string, number>,
+): EventStats {
+  const applied =
+    counts?.[e.id] ??
+    apps.filter(
+      (a) => a.eventId === e.id && a.attendance === 'attend' && a.status !== 'rejected' && a.status !== 'withdrawn',
+    ).length
   const remaining = e.capacity > 0 ? Math.max(0, e.capacity - applied) : null
   const fillRate = e.capacity > 0 ? Math.min(1, applied / e.capacity) : 0
   const deadlineDays = daysUntil(e.applicationDeadline)

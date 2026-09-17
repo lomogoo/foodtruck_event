@@ -83,6 +83,17 @@ export class LocalAdapter implements DataAdapter {
     return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   }
 
+  async listApplicationCounts(): Promise<Record<string, number>> {
+    const all = await this.listApplications()
+    const counts: Record<string, number> = {}
+    for (const a of all) {
+      if (a.attendance !== 'attend') continue
+      if (a.status !== 'pending' && a.status !== 'approved') continue
+      counts[a.eventId] = (counts[a.eventId] ?? 0) + 1
+    }
+    return counts
+  }
+
   async createApplication(draft: ApplicationDraft): Promise<ApplicationRecord> {
     const now = new Date().toISOString()
     const rec: ApplicationRecord = {

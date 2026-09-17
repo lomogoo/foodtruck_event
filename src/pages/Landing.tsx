@@ -1,14 +1,13 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '../components/ui'
-import { eventStats } from '../lib/format'
 import { useStore } from '../lib/store'
 
 /** 最初の分岐。役割を選ぶだけの画面なので、要素は徹底的に削る。 */
 export function Landing() {
   const navigate = useNavigate()
-  const { events, applications } = useStore()
-  const openCount = events.filter((e) => e.status === 'open' && !eventStats(e, applications).closed).length
+  const { events, statsFor } = useStore()
+  const openCount = events.filter((e) => e.status === 'open' && !statsFor(e).closed).length
 
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col justify-center gap-10 px-6 py-12">

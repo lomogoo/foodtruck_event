@@ -18,6 +18,11 @@ export interface DataAdapter {
   deleteEvent(id: string): Promise<void>
 
   listApplications(eventId?: string): Promise<ApplicationRecord[]>
+  /**
+   * イベントごとの申込件数。出店者は申込の中身を読めないため、
+   * 残枠・充足率はこちらの集計から求める。
+   */
+  listApplicationCounts(): Promise<Record<string, number>>
   createApplication(draft: ApplicationDraft): Promise<ApplicationRecord>
   updateApplicationStatus(id: string, status: ApplicationStatus): Promise<ApplicationRecord>
   deleteApplication(id: string): Promise<void>

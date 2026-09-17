@@ -7,7 +7,7 @@
 - 📱 スマートフォン前提の UI（スワイプ + タップ）
 - 🎨 引き算のデザイン / ライト・ダーク対応
 - 🗂 ログイン不要で出店申込、主催者のみログイン
-- ☁️ バックエンドは差し替え可能（端末内 IndexedDB ↔ Supabase）
+- ☁️ データは Supabase（Postgres + Storage）で管理。RLS で出店者と主催者の権限を分離
 
 ---
 
@@ -19,7 +19,7 @@
 | --- | --- |
 | さがす | 募集中イベントをカードデッキで1件ずつ表示。**右スワイプ = 申し込む／左スワイプ = 見送る／タップ = 詳細**。誤操作は「戻す」で1件ずつ取り消せます |
 | 申込フォーム | 6ステップ（店舗情報 → 火気 → 電気 → 出店内容 → 書類 → 確認）。横スワイプでもステップを移動できます |
-| 申込状況 | 自分が申し込んだイベントと、確認待ち／承認済みの状態を一覧 |
+| 申込状況 | 自分が申し込んだイベントを一覧。申込内容は本人にもサーバから読み戻せない設計のため、端末に残した控えを表示します |
 
 入力内容は端末に保存され、**2回目以降の申込は自動入力されます**。
 
@@ -93,42 +93,74 @@ npm run preview
 
 ### 環境変数（任意）
 
+既定の接続先はコードに埋め込んであるため、通常は設定不要です。
+
 | 変数 | 既定値 | 用途 |
 | --- | --- | --- |
-| `VITE_SUPABASE_URL` | なし | Supabase プロジェクト URL |
-| `VITE_SUPABASE_ANON_KEY` | なし | Supabase anon key |
-| `VITE_ADMIN_PASSCODE` | `mk-admin` | 端末内モードの管理者パスコード |
+| `VITE_SUPABASE_URL` | `https://tfkzsbwhvhgxbnnfwtou.supabase.co` | Supabase プロジェクト URL |
+| `VITE_SUPABASE_ANON_KEY` | 同梱の publishable key | Supabase publishable key |
+| `VITE_ADMIN_PASSCODE` | `mk-admin` | 端末内モードのみで使う管理者パスコード |
 | `BASE_PATH` | `/foodtruck_event/` | 公開パス（ビルド時） |
 
 ---
 
-## データの保存先
+## データベース（Supabase）
 
-### 1. 端末内（既定）
+データは Supabase（Postgres + Storage）で管理します。
 
-設定不要でそのまま動きます。イベントと申込はブラウザの IndexedDB に保存されるため、
-**その端末の中だけ**で完結します。デモ・動作確認・単独での下書き作業向けです。
+### テーブルの命名
 
-### 2. Supabase（複数人で共有する本番運用）
+この Supabase プロジェクトは **他サイトと共用** しているため、当サイトの資産はすべて
+`ft_`（food truck）で始めます。他サイトのテーブル（`kc_events` など）には一切触れません。
 
-主催者の端末で出店者の申込を受け取るには、こちらを設定してください。所要 5 分・無料枠で運用できます。
+| 種別 | 名前 |
+| --- | --- |
+| テーブル | `ft_events` / `ft_applications` |
+| ビュー | `ft_event_application_counts` |
+| ストレージバケット | `ft-attachments` |
 
-1. [supabase.com](https://supabase.com) でプロジェクトを作成
-2. 管理者ページ → **設定 → スキーマSQLをコピー** して、Supabase の SQL Editor で実行
-   （テーブル・インデックス・RLS ポリシー・ストレージバケットが作られます）
-3. Supabase の **Authentication → Users → Add user** で主催者アカウントを登録
-4. Supabase の **Project Settings → API** の `URL` と `anon public` キーを、管理者ページの設定に貼り付けて「接続して再読み込み」
+識別子は `src/lib/db/names.ts` の 1 箇所にまとまっているので、変更はそこだけで済みます。
 
-以後、管理者ページはそのメール／パスワードでログインします。
+### セットアップ（初回のみ・5分）
 
-権限の設計:
+1. **スキーマを適用する**
+   [`supabase/schema.sql`](supabase/schema.sql) の内容を Supabase の **SQL Editor** に貼り付けて実行します。
+   （管理者ページ → 設定 → 詳細設定 → 「スキーマSQLをコピー」からも同じ内容を取得できます）
+   テーブル・インデックス・RLSポリシー・集計ビュー・ストレージバケットが作られます。
+   すべて `create if not exists` / `create or replace` なので、既存のテーブルには影響しません。
 
-- 公開済みイベントは誰でも閲覧可（下書きは主催者のみ）
-- 出店申込は誰でも送信可、**閲覧・承認・削除は主催者のみ**
-- 添付ファイルは `attachments` バケットに保存
+2. **主催者アカウントを作る**
+   Supabase の **Authentication → Users → Add user** でメールアドレスとパスワードを登録します。
+   管理者ページはこのアカウントでログインします。
 
-GitHub Actions のシークレット (`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`) に設定しておけば、
-ビルド時に埋め込まれ、利用者側での設定は不要になります。
+以上で、出店者はログインなしで申込でき、主催者はログインして管理できる状態になります。
+
+### 権限の設計（RLS）
+
+| 対象 | 誰でも（未ログイン） | 主催者（ログイン済み） |
+| --- | --- | --- |
+| 公開済みイベント | 閲覧 | 閲覧・作成・編集・削除 |
+| 下書きイベント | — | すべて |
+| 出店申込 | **送信のみ** | 閲覧・承認・見送り・削除 |
+| 申込件数 | 件数のみ閲覧 | 〃 |
+| 添付ファイル | 閲覧・アップロード | 〃 |
+
+出店者は他店の申込内容を読めません（自分の申込も読み戻せません）。
+ただし残枠・充足率の表示には件数が必要なため、件数だけを集計した
+`ft_event_application_counts` ビューを公開しています。
+出店者側の「申込状況」タブは、送信時に端末へ残した控えを表示します。
+
+ポリシーは `auth.role()` のようなヘルパに依存せず、`to anon` / `to authenticated` の
+ロール単位で定義しています。`supabase/schema.sql` は実際の PostgreSQL 16 に対して
+適用・再適用・権限検証を通してあります（冪等・カスケード削除・件数ビューを含む）。
+
+publishable key はブラウザに配られる前提のキーで、実際の保護は上記の RLS が担います。
+
+### 端末内モード
+
+Supabase に書き込まずに操作を試したいときは、管理者ページ → 設定 → 詳細設定 →
+「端末内モードで動かす」で IndexedDB に切り替えられます（サンプルイベント付き）。
+その端末の中だけで完結し、Supabase には一切影響しません。
 
 ---
 
@@ -142,16 +174,19 @@ GitHub Pages へ自動デプロイされます（`.github/workflows/deploy.yml`�
 ## 構成
 
 ```
+supabase/schema.sql   テーブル・RLS・ストレージの定義（SQL Editor に貼る実体）
+
 src/
   lib/
     types.ts          ドメインモデル
-    db/               データアダプタ（契約 / IndexedDB / Supabase）
+    db/               データアダプタ（契約 / Supabase / IndexedDB）
+      names.ts        テーブル・バケット名（サイト識別子 ft_ はここだけ）
     store.tsx         React コンテキスト。取得と更新を集約
     format.ts         表示整形と、残枠・締切などの導出ロジック
     mailTemplate.ts   複数イベント → メール文面の生成
     csv.ts            申込のCSV書き出し
-    schemaSql.ts      Supabase スキーマ定義
-    seed.ts           初回起動時のサンプルデータ
+    schemaSql.ts      supabase/schema.sql を読み込むだけの薄い橋渡し
+    seed.ts           端末内モード用のサンプルデータ
   components/         UIプリミティブ、シート、トースト、イベントカード
   pages/
     Landing.tsx

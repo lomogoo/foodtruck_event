@@ -2,6 +2,7 @@ import type { ApplicationDraft } from './types'
 
 const PROFILE_KEY = 'mk.vendor-profile'
 const HANDLED_KEY = 'mk.handled'
+const SUBMISSIONS_KEY = 'mk.submissions'
 
 /** 毎回同じことを書かせないための、端末に残す店舗プロフィール。 */
 export type VendorProfile = Pick<
@@ -62,5 +63,34 @@ export function unmarkHandled(eventId: string) {
     localStorage.setItem(HANDLED_KEY, JSON.stringify(h))
   } catch {
     /* noop */
+  }
+}
+
+/**
+ * 送信した申込の控え。出店者はログインしないため、RLS 上は自分の申込も
+ * 読み戻せない。「何をいつ申し込んだか」は端末側に残しておく。
+ */
+export interface Submission {
+  id: string
+  eventId: string
+  shopName: string
+  createdAt: string
+}
+
+export function loadSubmissions(): Submission[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) ?? '[]') as Submission[]
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+
+export function recordSubmission(entry: Submission) {
+  try {
+    const list = loadSubmissions().filter((s) => s.id !== entry.id)
+    localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify([entry, ...list].slice(0, 100)))
+  } catch {
+    // 控えが残せなくても申込自体は成立している。
   }
 }

@@ -7,12 +7,39 @@ import type {
   EventDraft,
   EventRecord,
 } from '../types'
+import { BUCKET, T_APPLICATIONS, T_EVENTS, V_APPLICATION_COUNTS } from './names'
 import type { DataAdapter } from './types'
-
-const BUCKET = 'attachments'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>
+
+/**
+ * 通信が返ってこないまま固まると、画面は読み込み中のまま動かなくなる。
+ * どの呼び出しにも上限を置き、必ず結果かエラーのどちらかを返す。
+ */
+const TIMEOUT_MS = 15_000
+
+function withTimeout<T>(work: PromiseLike<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label}がタイムアウトしました。通信環境を確認して、もう一度お試しください。`)),
+      TIMEOUT_MS,
+    )
+  })
+  return Promise.race([Promise.resolve(work), limit]).finally(() => clearTimeout(timer)) as Promise<T>
+}
+
+/** PostgREST のエラーを、次の一手が分かる日本語にする。 */
+function describe(error: { message: string; code?: string }): string {
+  if (error.code === 'PGRST205' || /Could not find the table/.test(error.message)) {
+    return `テーブル（${T_EVENTS} / ${T_APPLICATIONS}）がまだ作られていません。管理画面の 設定 → 詳細設定 からスキーマSQLをコピーし、Supabase の SQL Editor で実行してください。`
+  }
+  if (error.code === '42501' || /row-level security/i.test(error.message)) {
+    return '権限がありません。主催者アカウントでログインしてから操作してください。'
+  }
+  return error.message
+}
 
 const eventToRow = (e: Partial<EventDraft>): Row => {
   const r: Row = {}
@@ -130,85 +157,125 @@ export class SupabaseAdapter implements DataAdapter {
   }
 
   private unwrap<T>(res: { data: unknown; error: { message: string } | null }): T {
-    if (res.error) throw new Error(res.error.message)
+    if (res.error) throw new Error(describe(res.error))
     return res.data as T
   }
 
   async listEvents(): Promise<EventRecord[]> {
     const data = this.unwrap<Row[]>(
-      await this.client.from('events').select('*').order('start_at', { ascending: true }),
+      await withTimeout(
+        this.client.from(T_EVENTS).select('*').order('start_at', { ascending: true }),
+        'イベントの読み込み',
+      ),
     )
     return data.map(rowToEvent)
   }
 
   async getEvent(id: string) {
-    const { data, error } = await this.client.from('events').select('*').eq('id', id).maybeSingle()
-    if (error) throw new Error(error.message)
+    const { data, error } = await withTimeout(
+      this.client.from(T_EVENTS).select('*').eq('id', id).maybeSingle(),
+      'イベントの読み込み',
+    )
+    if (error) throw new Error(describe(error))
     return data ? rowToEvent(data as Row) : null
   }
 
   async createEvent(draft: EventDraft) {
     const data = this.unwrap<Row>(
-      await this.client.from('events').insert(eventToRow(draft)).select().single(),
+      await withTimeout(
+        this.client.from(T_EVENTS).insert(eventToRow(draft)).select().single(),
+        'イベントの作成',
+      ),
     )
     return rowToEvent(data)
   }
 
   async updateEvent(id: string, patch: Partial<EventDraft>) {
     const data = this.unwrap<Row>(
-      await this.client
-        .from('events')
-        .update({ ...eventToRow(patch), updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single(),
+      await withTimeout(
+        this.client
+          .from(T_EVENTS)
+          .update({ ...eventToRow(patch), updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select()
+          .single(),
+        'イベントの保存',
+      ),
     )
     return rowToEvent(data)
   }
 
   async deleteEvent(id: string) {
-    const { error } = await this.client.from('events').delete().eq('id', id)
-    if (error) throw new Error(error.message)
+    const { error } = await withTimeout(
+      this.client.from(T_EVENTS).delete().eq('id', id),
+      'イベントの削除',
+    )
+    if (error) throw new Error(describe(error))
   }
 
   async listApplications(eventId?: string): Promise<ApplicationRecord[]> {
-    let q = this.client.from('applications').select('*').order('created_at', { ascending: false })
+    let q = this.client.from(T_APPLICATIONS).select('*').order('created_at', { ascending: false })
     if (eventId) q = q.eq('event_id', eventId)
-    const data = this.unwrap<Row[]>(await q)
+    const data = this.unwrap<Row[]>(await withTimeout(q, '申込の読み込み'))
     return data.map(rowToApplication)
   }
 
-  async createApplication(draft: ApplicationDraft) {
-    const data = this.unwrap<Row>(
-      await this.client.from('applications').insert(applicationToRow(draft)).select().single(),
+  async listApplicationCounts(): Promise<Record<string, number>> {
+    const data = this.unwrap<{ event_id: string; applied: number }[]>(
+      await withTimeout(
+        this.client.from(V_APPLICATION_COUNTS).select('event_id, applied'),
+        '申込件数の読み込み',
+      ),
     )
-    return rowToApplication(data)
+    return Object.fromEntries(data.map((r) => [r.event_id, r.applied]))
+  }
+
+  async createApplication(draft: ApplicationDraft): Promise<ApplicationRecord> {
+    // 出店者（anon）には申込の SELECT 権限がない。insert に returning を
+    // 付けると RLS に弾かれるため、id は手元で発番して挿入だけ行う。
+    const id = crypto.randomUUID()
+    const now = new Date().toISOString()
+    const { error } = await withTimeout(
+      this.client.from(T_APPLICATIONS).insert({ id, ...applicationToRow(draft) }),
+      '申込の送信',
+    )
+    if (error) throw new Error(describe(error))
+    return { ...draft, id, status: 'pending', createdAt: now, updatedAt: now }
   }
 
   async updateApplicationStatus(id: string, status: ApplicationStatus) {
     const data = this.unwrap<Row>(
-      await this.client
-        .from('applications')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single(),
+      await withTimeout(
+        this.client
+          .from(T_APPLICATIONS)
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select()
+          .single(),
+        '申込の更新',
+      ),
     )
     return rowToApplication(data)
   }
 
   async deleteApplication(id: string) {
-    const { error } = await this.client.from('applications').delete().eq('id', id)
-    if (error) throw new Error(error.message)
+    const { error } = await withTimeout(
+      this.client.from(T_APPLICATIONS).delete().eq('id', id),
+      '申込の削除',
+    )
+    if (error) throw new Error(describe(error))
   }
 
   async uploadFile(file: File): Promise<Attachment> {
     const safe = file.name.replace(/[^\w.\-]/g, '_')
     const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${safe}`
-    const { error } = await this.client.storage
-      .from(BUCKET)
-      .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type })
-    if (error) throw new Error(`アップロードに失敗しました: ${error.message}`)
+    const { error } = await withTimeout(
+      this.client.storage
+        .from(BUCKET)
+        .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type }),
+      'ファイルのアップロード',
+    )
+    if (error) throw new Error(`アップロードに失敗しました: ${describe(error)}`)
     const { data } = this.client.storage.from(BUCKET).getPublicUrl(path)
     return {
       id: path,
@@ -224,7 +291,10 @@ export class SupabaseAdapter implements DataAdapter {
   }
 
   async adminSignIn({ email, password }: { email: string; password: string }) {
-    const { error } = await this.client.auth.signInWithPassword({ email, password })
+    const { error } = await withTimeout(
+      this.client.auth.signInWithPassword({ email, password }),
+      'ログイン',
+    )
     if (error) throw new Error('メールアドレスまたはパスワードが違います')
   }
 
@@ -233,7 +303,7 @@ export class SupabaseAdapter implements DataAdapter {
   }
 
   async isAdmin() {
-    const { data } = await this.client.auth.getSession()
+    const { data } = await withTimeout(this.client.auth.getSession(), 'ログイン状態の確認')
     return Boolean(data.session)
   }
 }

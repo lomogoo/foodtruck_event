@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useToast } from '../../components/Toast'
 import { Badge, Button, Card, Divider, EmptyState, Field, Input, Segmented, cx } from '../../components/ui'
-import { STATUS_LABEL, eventStats, fmtEventDates, yen } from '../../lib/format'
+import { STATUS_LABEL, fmtEventDates, yen } from '../../lib/format'
 import { TEMPLATES, generateMail, type TemplateId } from '../../lib/mailTemplate'
 import { useStore } from '../../lib/store'
 
@@ -14,7 +14,7 @@ const applyUrlDefault = () => `${location.origin}${location.pathname}#/vendor`
  * 主催者が毎回ゼロから書いている作業を、選択とコピーだけに畳む。
  */
 export function MailComposer() {
-  const { events, applications } = useStore()
+  const { events, statsFor } = useStore()
   const toast = useToast()
 
   const [template, setTemplate] = useState<TemplateId>('announce')
@@ -106,7 +106,7 @@ export function MailComposer() {
         <div className="space-y-2">
           {candidates.map((e) => {
             const on = selected.includes(e.id)
-            const s = eventStats(e, applications)
+            const s = statsFor(e)
             return (
               <button
                 key={e.id}
