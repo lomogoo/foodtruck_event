@@ -1,0 +1,186 @@
+@import 'tailwindcss';
+
+/* ─────────────────────────────────────────────
+   引き算のデザイン：面は白、線は極細、色は1色だけ。
+   強調は「色を足す」のではなく「余白と階層」で作る。
+   ───────────────────────────────────────────── */
+:root {
+  --c-bg: #f2f2f4;
+  --c-surface: #ffffff;
+  --c-surface-2: #fafafa;
+  --c-ink: #1a1a1c;
+  --c-muted: #6b6b73;
+  --c-faint: #9b9ba3;
+  --c-line: rgb(0 0 0 / 0.09);
+  --c-line-strong: rgb(0 0 0 / 0.16);
+  --c-accent: #ff5a24;
+  --c-accent-soft: #fff1ec;
+  --c-ok: #0a8f52;
+  --c-ok-soft: #e8f7ef;
+  --c-warn: #b4690e;
+  --c-warn-soft: #fdf3e3;
+  --c-danger: #d2331f;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.14);
+  --shadow-float: 0 2px 6px rgb(0 0 0 / 0.06), 0 24px 48px -20px rgb(0 0 0 / 0.28);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --c-bg: #0a0a0c;
+    --c-surface: #17171b;
+    --c-surface-2: #1e1e24;
+    --c-ink: #f3f3f5;
+    --c-muted: #a0a0aa;
+    --c-faint: #72727c;
+    --c-line: rgb(255 255 255 / 0.1);
+    --c-line-strong: rgb(255 255 255 / 0.2);
+    --c-accent: #ff6a3a;
+    --c-accent-soft: #2a1610;
+    --c-ok: #3ddc97;
+    --c-ok-soft: #10261d;
+    --c-warn: #f0b64e;
+    --c-warn-soft: #2a2113;
+    --c-danger: #ff6b5b;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+    --shadow-float: 0 2px 6px rgb(0 0 0 / 0.5), 0 24px 48px -20px rgb(0 0 0 / 0.9);
+  }
+}
+
+:root[data-theme='dark'] {
+  --c-bg: #0a0a0c;
+  --c-surface: #17171b;
+  --c-surface-2: #1e1e24;
+  --c-ink: #f3f3f5;
+  --c-muted: #a0a0aa;
+  --c-faint: #72727c;
+  --c-line: rgb(255 255 255 / 0.1);
+  --c-line-strong: rgb(255 255 255 / 0.2);
+  --c-accent: #ff6a3a;
+  --c-accent-soft: #2a1610;
+  --c-ok: #3ddc97;
+  --c-ok-soft: #10261d;
+  --c-warn: #f0b64e;
+  --c-warn-soft: #2a2113;
+  --c-danger: #ff6b5b;
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-faint: var(--c-faint);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-accent: var(--c-accent);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-ok: var(--c-ok);
+  --color-ok-soft: var(--c-ok-soft);
+  --color-warn: var(--c-warn);
+  --color-warn-soft: var(--c-warn-soft);
+  --color-danger: var(--c-danger);
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+    'Noto Sans JP', 'Yu Gothic UI', Meiryo, system-ui, sans-serif;
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--c-bg);
+    color: var(--c-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  h1, h2, h3 {
+    letter-spacing: -0.021em;
+    line-height: 1.25;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  input, textarea, select {
+    font: inherit;
+    color: inherit;
+    /* iOS で入力時にズームさせない。 */
+    font-size: 16px;
+  }
+
+  /* ネイティブの数値スピナーは引き算対象。 */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer utilities {
+  .pad-safe-b {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+  .pad-safe-t {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* カード面のガラス感。背景の主張を消しつつ階層だけ残す。 */
+  .glass {
+    background: color-mix(in srgb, var(--c-surface) 78%, transparent);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
