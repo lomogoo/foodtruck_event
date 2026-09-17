@@ -1,4 +1,4 @@
-import { POWER_LABEL, fmtDate, fmtEventDates, yen } from './format'
+import { POWER_LABEL, SELECTION_LABEL, fmtDate, fmtEventDates, yen } from './format'
 import type { EventRecord } from './types'
 
 export type TemplateId = 'announce' | 'reminder' | 'list' | 'short'
@@ -34,8 +34,13 @@ function eventBlock(e: EventRecord, i: number): string {
     `　■ 出店料　：${yen(e.fee)}${e.feeNote ? `（${e.feeNote}）` : ''}`,
     `　■ 電源　　：${POWER_LABEL[e.power]}${e.powerCapacityW > 0 ? `／1区画 ${e.powerCapacityW.toLocaleString()}W まで` : ''}`,
     e.expectedVisitors > 0 ? `　■ 想定来場：約${e.expectedVisitors.toLocaleString()}名` : '',
-    e.capacity > 0 ? `　■ 募集台数：${e.capacity}台` : '',
+    e.capacity > 0
+      ? `　■ 募集枠数：${e.capacity}枠（${SELECTION_LABEL[e.selectionMethod]}）`
+      : `　■ 選考方法：${SELECTION_LABEL[e.selectionMethod]}`,
     e.applicationDeadline ? `　■ 申込締切：${fmtDate(e.applicationDeadline)}` : '',
+    e.selectionMethod === 'lottery' && e.resultAnnounceAt
+      ? `　■ 抽選結果：${fmtDate(e.resultAnnounceAt)}に通知`
+      : '',
     e.loadInTime ? `　■ 搬入　　：${e.loadInTime}` : '',
     e.summary ? `　■ 概要　　：${e.summary.replace(/\n+/g, ' ')}` : '',
     e.notes ? `　■ 備考　　：${e.notes.replace(/\n+/g, ' ')}` : '',
@@ -48,12 +53,12 @@ function shortBlock(e: EventRecord): string {
   return [
     `▼ ${e.title}`,
     `${fmtEventDates(e)}${e.openHours ? ` ${e.openHours}` : ''}${e.venue ? ` @${e.venue}` : ''}`,
-    `出店料 ${yen(e.fee)}／${POWER_LABEL[e.power]}${e.capacity > 0 ? `／${e.capacity}台` : ''}${e.applicationDeadline ? `／締切 ${fmtDate(e.applicationDeadline, { year: false })}` : ''}`,
+    `出店料 ${yen(e.fee)}／${POWER_LABEL[e.power]}${e.capacity > 0 ? `／${e.capacity}枠` : ''}／${SELECTION_LABEL[e.selectionMethod]}${e.applicationDeadline ? `／締切 ${fmtDate(e.applicationDeadline, { year: false })}` : ''}`,
   ].join('\n')
 }
 
 function listBlock(e: EventRecord): string {
-  return `・${e.title}｜${fmtEventDates(e)}｜${e.venue || '会場未定'}｜出店料 ${yen(e.fee)}｜${POWER_LABEL[e.power]}｜締切 ${e.applicationDeadline ? fmtDate(e.applicationDeadline, { year: false }) : '—'}`
+  return `・${e.title}｜${fmtEventDates(e)}｜${e.venue || '会場未定'}｜出店料 ${yen(e.fee)}｜${POWER_LABEL[e.power]}｜${e.capacity > 0 ? `${e.capacity}枠・` : ''}${SELECTION_LABEL[e.selectionMethod]}｜締切 ${e.applicationDeadline ? fmtDate(e.applicationDeadline, { year: false }) : '—'}`
 }
 
 export interface GeneratedMail {
@@ -98,7 +103,9 @@ export function generateMail(
         events.map(shortBlock).join('\n\n'),
         '',
         ctx.applyUrl ? `お申込みはこちら → ${ctx.applyUrl}` : '',
-        '先着順のため、埋まり次第締め切ります。',
+        events.some((e) => e.selectionMethod === 'first_come')
+          ? '先着順のイベントは、埋まり次第締め切ります。'
+          : '締切後に抽選し、結果をご連絡します。',
       ]
         .filter((l) => l !== undefined)
         .join('\n')
@@ -121,7 +128,11 @@ export function generateMail(
         '',
         `いつもお世話になっております。${org}です。`,
         `先日ご案内した出店募集について、申込締切が近づいてまいりましたので再度お知らせいたします。`,
-        `${many ? '下記イベントは' : '本イベントは'}区画数に限りがあり、埋まり次第受付を終了いたします。`,
+        `${many ? '下記イベントは' : '本イベントは'}枠数に限りがあります。${
+          events.some((e) => e.selectionMethod === 'first_come')
+            ? '先着順のものは埋まり次第受付を終了いたします。'
+            : '締切後に抽選いたします。'
+        }`,
         '',
         events.map(eventBlock).join('\n\n'),
         '',
@@ -149,8 +160,15 @@ export function generateMail(
       ctx.applyUrl
         ? `　下記フォームよりお申込みください（所要3分）。\n　${ctx.applyUrl}`
         : '　本メールにご返信のうえ、出店希望をお知らせください。',
-      '　区画数に限りがあるため、先着順での受付となります。',
-      '　お申込み後、主催者にて確認のうえ改めてご連絡いたします。',
+      ...(() => {
+        const hasFirstCome = events.some((e) => e.selectionMethod === 'first_come')
+        const hasLottery = events.some((e) => e.selectionMethod === 'lottery')
+        const lines: string[] = []
+        if (hasFirstCome) lines.push('　先着順のイベントは、枠が埋まり次第受付を終了いたします。')
+        if (hasLottery) lines.push('　抽選のイベントは、締切後に抽選のうえ結果をご連絡いたします。')
+        lines.push('　お申込み後、主催者にて確認のうえ改めてご連絡いたします。')
+        return lines
+      })(),
       '',
       '■ お申込み時にご確認いただく内容',
       '　店舗名／代表者名／連絡先／提供メニュー／キッチンカーサイズ',

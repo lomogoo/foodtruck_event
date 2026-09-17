@@ -1,12 +1,16 @@
 import { AnimatePresence, motion, useDragControls } from 'framer-motion'
 import { useMemo, useRef, useState } from 'react'
 import { AttachmentList } from '../../components/AttachmentList'
+import { CapacityMeter } from '../../components/CapacityMeter'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import {
   Badge, Button, Divider, Field, Input, KV, Segmented, Select, Spinner, Textarea, Toggle, cx,
 } from '../../components/ui'
-import { FIRE_LABEL, GAS_LABEL, POWER_LABEL, fmtEventDates, mm, totalWatt, yen, type EventStats } from '../../lib/format'
+import {
+  FIRE_LABEL, GAS_LABEL, POWER_LABEL, SELECTION_HINT, SELECTION_LABEL,
+  fmtDate, fmtEventDates, mm, totalWatt, yen, type EventStats,
+} from '../../lib/format'
 import { uid } from '../../lib/db'
 import { loadProfile, recordSubmission, saveProfile, type VendorProfile } from '../../lib/profile'
 import { useStore } from '../../lib/store'
@@ -163,7 +167,7 @@ export function ApplyForm({
   if (done) {
     return (
       <Sheet open onClose={onSubmitted} title="">
-        <Success event={event} onClose={onSubmitted} />
+        <Success event={event} stats={stats} onClose={onSubmitted} />
       </Sheet>
     )
   }
@@ -194,13 +198,17 @@ export function ApplyForm({
               </Button>
             ) : (
               <Button full accent onClick={submit} disabled={submitting}>
-                {submitting ? <Spinner /> : 'この内容で出店を申し込む'}
+                {submitting
+                  ? <Spinner />
+                  : stats.method === 'lottery'
+                    ? 'この内容で抽選に応募する'
+                    : 'この内容で出店を申し込む'}
               </Button>
             )}
           </div>
           <p className="text-center text-[11px] text-faint">
             {step === STEPS.length - 1
-              ? '送信後、主催者の確認をもって出店確定となります'
+              ? SELECTION_HINT[stats.method]
               : '入力内容は端末に保存され、次回の申込で自動入力されます'}
           </p>
         </div>
@@ -243,7 +251,7 @@ export function ApplyForm({
             {step === 4 && (
               <StepDocs form={form} set={set} onPickFiles={onPickFiles} />
             )}
-            {step === 5 && <StepConfirm form={form} event={event} watts={watts} onEdit={(i) => go(i)} />}
+            {step === 5 && <StepConfirm form={form} event={event} stats={stats} watts={watts} onEdit={(i) => go(i)} />}
           </motion.div>
         </AnimatePresence>
       </motion.div>
@@ -331,9 +339,15 @@ function StepShop({
           {fmtEventDates(event)} ・ 出店料 {yen(event.fee)}
         </p>
         <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <Badge tone={stats.method === 'lottery' ? 'neutral' : 'accent'}>
+            {SELECTION_LABEL[stats.method]}
+          </Badge>
           {stats.scarce && <Badge tone="accent">残り{stats.remaining}枠</Badge>}
+          {stats.competitive && <Badge tone="accent">応募多数</Badge>}
           {stats.urgent && <Badge tone="warn">締切あと{stats.deadlineDays}日</Badge>}
-          {stats.applied > 0 && <Badge tone="ok">{stats.applied}店舗が申込済み</Badge>}
+        </div>
+        <div className="mt-3">
+          <CapacityMeter stats={stats} size="sm" />
         </div>
       </div>
 
@@ -727,9 +741,9 @@ function StepDocs({
 }
 
 function StepConfirm({
-  form, event, watts, onEdit,
+  form, event, stats, watts, onEdit,
 }: {
-  form: FormState; event: EventRecord; watts: number; onEdit: (step: number) => void
+  form: FormState; event: EventRecord; stats: EventStats; watts: number; onEdit: (step: number) => void
 }) {
   const gas =
     form.gasKind === 'other' ? form.gasKindOther : form.gasKind ? GAS_LABEL[form.gasKind] : '—'
@@ -737,11 +751,21 @@ function StepConfirm({
   return (
     <div className="space-y-5">
       <div className="rounded-[var(--radius-md)] bg-accent-soft p-4">
-        <p className="text-[13px] font-semibold text-accent">最終確認</p>
+        <p className="text-[13px] font-semibold text-accent">
+          最終確認 ・ {SELECTION_LABEL[stats.method]}
+        </p>
         <p className="mt-1 text-[13px] leading-relaxed text-ink">
-          「{event.title}」に出店を申し込みます。送信後、主催者の確認をもって出店確定となります。
+          「{event.title}」に出店を申し込みます。
+          {stats.method === 'lottery'
+            ? `締切後に抽選のうえ、結果をメールでお知らせします。${
+                event.resultAnnounceAt ? `（通知予定 ${fmtDate(event.resultAnnounceAt)}）` : ''
+              }`
+            : '先着順のため、送信の早い順に枠が確定します。主催者の確認をもって出店確定となります。'}
           {event.cancellationPolicy && ` ${event.cancellationPolicy}`}
         </p>
+        <div className="mt-3">
+          <CapacityMeter stats={stats} size="sm" />
+        </div>
       </div>
 
       <ConfirmBlock title="店舗情報" onEdit={() => onEdit(0)}>
@@ -837,7 +861,12 @@ function Reveal({ children }: { children: React.ReactNode }) {
 
 /* ── success ────────────────────────────────────────────── */
 
-function Success({ event, onClose }: { event: EventRecord; onClose: () => void }) {
+function Success({
+  event, stats, onClose,
+}: {
+  event: EventRecord; stats: EventStats; onClose: () => void
+}) {
+  const lottery = stats.method === 'lottery'
   return (
     <div className="flex flex-col items-center gap-4 px-2 py-8 text-center">
       <motion.div
@@ -860,18 +889,24 @@ function Success({ event, onClose }: { event: EventRecord; onClose: () => void }
       </motion.div>
 
       <div className="space-y-1.5">
-        <h2 className="text-[20px] font-semibold tracking-tight">申込を受け付けました</h2>
+        <h2 className="text-[20px] font-semibold tracking-tight">
+          {lottery ? '抽選に応募しました' : '申込を受け付けました'}
+        </h2>
         <p className="text-[13.5px] leading-relaxed text-muted">
-          「{event.title}」への出店申込を主催者に送信しました。
+          「{event.title}」への{lottery ? '応募' : '出店申込'}を主催者に送信しました。
           <br />
-          確認後、ご登録のメールアドレスにご連絡します。
+          {lottery
+            ? `締切後に抽選し、結果をご登録のメールアドレスにご連絡します。${
+                event.resultAnnounceAt ? `（通知予定 ${fmtDate(event.resultAnnounceAt)}）` : ''
+              }`
+            : '確認後、ご登録のメールアドレスにご連絡します。'}
         </p>
       </div>
 
       <div className="w-full rounded-[var(--radius-md)] bg-[var(--c-surface-2)] p-4 text-left">
         <p className="text-[12px] font-semibold text-muted">次にすること</p>
         <ul className="mt-1.5 space-y-1 text-[13px] leading-relaxed">
-          <li>・主催者からの連絡をお待ちください</li>
+          <li>{lottery ? '・抽選結果の連絡をお待ちください' : '・主催者からの連絡をお待ちください'}</li>
           <li>・書類が未提出の場合は、追ってご提出ください</li>
           <li>・入力内容は保存されました。次回の申込は数タップで完了します</li>
         </ul>

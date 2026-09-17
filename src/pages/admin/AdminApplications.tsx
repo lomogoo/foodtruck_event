@@ -6,6 +6,7 @@ import { Badge, Button, Card, Divider, EmptyState, Input, KV, Segmented, Select 
 import { applicationsToCsv, downloadCsv } from '../../lib/csv'
 import { APP_STATUS_LABEL, FIRE_LABEL, GAS_LABEL, fmtDateTime, mm, totalWatt } from '../../lib/format'
 import { useStore } from '../../lib/store'
+import { LotteryPanel } from './LotteryPanel'
 import type { ApplicationRecord } from '../../lib/types'
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected'
@@ -25,7 +26,7 @@ export function AdminApplications({
   eventId: string
   onChangeEvent: (id: string) => void
 }) {
-  const { events, applications, setApplicationStatus, deleteApplication } = useStore()
+  const { events, applications, statsFor, setApplicationStatus, deleteApplication } = useStore()
   const toast = useToast()
   const [status, setStatus] = useState<StatusFilter>('all')
   const [q, setQ] = useState('')
@@ -54,6 +55,7 @@ export function AdminApplications({
   }, [applications, eventId])
 
   const title = (id: string) => events.find((e) => e.id === id)?.title ?? '(削除済み)'
+  const scopedEvent = eventId === 'all' ? undefined : events.find((e) => e.id === eventId)
 
   return (
     <div className="space-y-4">
@@ -100,6 +102,10 @@ export function AdminApplications({
           </Button>
         </div>
       </div>
+
+      {scopedEvent?.selectionMethod === 'lottery' && (
+        <LotteryPanel event={scopedEvent} stats={statsFor(scopedEvent)} applications={applications} />
+      )}
 
       {list.length === 0 ? (
         <EmptyState

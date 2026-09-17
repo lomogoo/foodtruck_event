@@ -1,7 +1,11 @@
-import { POWER_LABEL, fmtDate, fmtDateTime, fmtEventDates, yen, type EventStats } from '../lib/format'
+import {
+  POWER_LABEL, SELECTION_HINT, SELECTION_LABEL,
+  fmtDate, fmtDateTime, fmtEventDates, yen, type EventStats,
+} from '../lib/format'
 import type { EventRecord } from '../lib/types'
 import { AttachmentList } from './AttachmentList'
-import { Badge, Divider, FillBar, KV } from './ui'
+import { CapacityMeter } from './CapacityMeter'
+import { Badge, Divider, KV } from './ui'
 
 /** シート内に出す詳細。申込前の最後の確認になるので、迷いを残さない順に並べる。 */
 export function EventDetail({ event, stats }: { event: EventRecord; stats: EventStats }) {
@@ -17,23 +21,26 @@ export function EventDetail({ event, stats }: { event: EventRecord; stats: Event
 
       <div className="space-y-2">
         <div className="flex flex-wrap gap-1.5">
+          <Badge tone={stats.method === 'lottery' ? 'neutral' : 'accent'}>
+            {SELECTION_LABEL[stats.method]}
+          </Badge>
           {stats.scarce && <Badge tone="accent">残り{stats.remaining}枠</Badge>}
+          {stats.competitive && <Badge tone="accent">応募多数</Badge>}
           {stats.urgent && <Badge tone="warn">締切あと{stats.deadlineDays}日</Badge>}
-          {stats.applied > 0 && <Badge tone="ok">{stats.applied}店舗が申込済み</Badge>}
         </div>
         <h2 className="text-[22px] font-semibold leading-snug tracking-tight">{event.title}</h2>
         <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-muted">{event.summary}</p>
       </div>
 
-      {event.capacity > 0 && (
-        <div className="space-y-1.5">
-          <FillBar rate={stats.fillRate} />
-          <p className="text-[12px] text-faint tabular">
-            全{event.capacity}台中 {stats.applied}台が申込済み
-            {stats.remaining !== null && stats.remaining > 0 && ` ・ 残り${stats.remaining}枠`}
-          </p>
-        </div>
-      )}
+      <div className="space-y-2.5 rounded-[var(--radius-md)] border border-line p-4">
+        <CapacityMeter stats={stats} />
+        <p className="text-[12.5px] leading-relaxed text-muted">
+          <span className="font-medium text-ink">{SELECTION_LABEL[stats.method]}</span>
+          ：{SELECTION_HINT[stats.method]}
+          {stats.method === 'lottery' && event.resultAnnounceAt &&
+            `（結果通知 ${fmtDate(event.resultAnnounceAt)}）`}
+        </p>
+      </div>
 
       <Divider />
 
@@ -69,7 +76,11 @@ export function EventDetail({ event, stats }: { event: EventRecord; stats: Event
         {event.expectedVisitors > 0 && (
           <KV k="想定来場者数" v={`約${event.expectedVisitors.toLocaleString()}名`} />
         )}
-        {event.capacity > 0 && <KV k="募集台数" v={`${event.capacity}台`} />}
+        {event.capacity > 0 && <KV k="募集枠数" v={`${event.capacity}枠`} />}
+        <KV k="選考方法" v={SELECTION_LABEL[stats.method]} />
+        {stats.method === 'lottery' && event.resultAnnounceAt && (
+          <KV k="抽選結果の通知" v={fmtDate(event.resultAnnounceAt)} />
+        )}
         {event.applicationDeadline && (
           <KV k="申込締切" v={fmtDateTime(event.applicationDeadline)} />
         )}
@@ -111,7 +122,9 @@ export function EventDetail({ event, stats }: { event: EventRecord; stats: Event
       )}
 
       <p className="text-[11.5px] leading-relaxed text-faint">
-        申込＝確定ではありません。主催者の確認後に改めてご連絡します。
+        {stats.method === 'lottery'
+          ? '申込＝当選ではありません。締切後に抽選のうえ、結果をご連絡します。'
+          : '申込＝確定ではありません。主催者の確認後に改めてご連絡します。'}
         {event.applicationDeadline && `（締切: ${fmtDate(event.applicationDeadline)}）`}
       </p>
     </div>

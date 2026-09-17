@@ -10,7 +10,7 @@ const day = (offset: number, h = 10, m = 0) => {
   return d.toISOString()
 }
 
-const base: Omit<EventDraft, 'title' | 'summary' | 'venue' | 'address' | 'startAt' | 'endAt' | 'fee' | 'capacity' | 'applicationDeadline' | 'expectedVisitors' | 'thumbnailUrl'> = {
+const base: Omit<EventDraft, 'title' | 'summary' | 'venue' | 'address' | 'startAt' | 'endAt' | 'fee' | 'capacity' | 'applicationDeadline' | 'expectedVisitors' | 'thumbnailUrl' | 'selectionMethod' | 'resultAnnounceAt'> = {
   openHours: '10:00 - 17:00',
   loadInTime: '当日 8:00 より',
   feeNote: '1台1日あたり・売上歩合なし',
@@ -42,6 +42,8 @@ const SEEDS: EventDraft[] = [
     endAt: day(19, 17),
     fee: 15000,
     capacity: 8,
+    selectionMethod: 'lottery',
+    resultAnnounceAt: day(12, 18),
     applicationDeadline: day(9, 23, 59),
     expectedVisitors: 8000,
     thumbnailUrl: thumb('#FFB36B', '#FF5A24', '🌸'),
@@ -57,6 +59,8 @@ const SEEDS: EventDraft[] = [
     openHours: '16:00 - 22:00',
     fee: 12000,
     capacity: 5,
+    selectionMethod: 'first_come',
+    resultAnnounceAt: '',
     applicationDeadline: day(2, 23, 59),
     expectedVisitors: 4500,
     powerCapacityW: 2000,
@@ -75,6 +79,8 @@ const SEEDS: EventDraft[] = [
     fee: 0,
     feeNote: '出店料・歩合ともになし（主催者負担）',
     capacity: 4,
+    selectionMethod: 'lottery',
+    resultAnnounceAt: day(23, 18),
     applicationDeadline: day(20, 23, 59),
     expectedVisitors: 1200,
     power: 'negotiable',
@@ -93,6 +99,8 @@ const SEEDS: EventDraft[] = [
     openHours: '9:00 - 16:00',
     fee: 10000,
     capacity: 10,
+    selectionMethod: 'first_come',
+    resultAnnounceAt: '',
     applicationDeadline: day(38, 23, 59),
     expectedVisitors: 3000,
     thumbnailUrl: thumb('#F6C453', '#C2410C', '🍂'),

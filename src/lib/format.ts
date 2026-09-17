@@ -47,21 +47,29 @@ export const isPast = (iso: string) => {
 
 /** 出店者に見せる需給サマリ。希少性・社会的証明の表示に使う。 */
 export interface EventStats {
+  method: EventRecord['selectionMethod']
+  /** 募集枠数。0 は未定。 */
+  capacity: number
+  /** 申込数。先着では確保済みの枠数、抽選では応募数。 */
   applied: number
+  /** 空き枠。枠数未定なら null。 */
   remaining: number | null
+  /** メーターの伸び（0〜1）。 */
   fillRate: number
+  /** 応募倍率。抽選でのみ意味を持つ。枠数未定なら null。 */
+  ratio: number | null
+  /** 枠が埋まっている（先着なら締切、抽選なら倍率1倍超え）。 */
+  full: boolean
   deadlineDays: number | null
-  /** 残りわずか（2枠以下、または充足率80%以上）。 */
+  /** 残りわずか（先着のみ）。2枠以下、または充足率80%以上。 */
   scarce: boolean
+  /** 応募多数（抽選のみ）。倍率が1倍を超えている。 */
+  competitive: boolean
   /** 締切間近（3日以内）。 */
   urgent: boolean
   closed: boolean
 }
 
-/**
- * @param counts 申込件数の集計。出店者は申込行そのものを読めないので、
- *               取得できている場合はこちらを優先する。
- */
 export function eventStats(
   e: EventRecord,
   apps: ApplicationRecord[],
@@ -72,22 +80,47 @@ export function eventStats(
     apps.filter(
       (a) => a.eventId === e.id && a.attendance === 'attend' && a.status !== 'rejected' && a.status !== 'withdrawn',
     ).length
-  const remaining = e.capacity > 0 ? Math.max(0, e.capacity - applied) : null
-  const fillRate = e.capacity > 0 ? Math.min(1, applied / e.capacity) : 0
+
+  const method = e.selectionMethod ?? 'first_come'
+  const hasCapacity = e.capacity > 0
+  const remaining = hasCapacity ? Math.max(0, e.capacity - applied) : null
+  const ratio = hasCapacity ? applied / e.capacity : null
+  const fillRate = hasCapacity ? Math.min(1, applied / e.capacity) : 0
+  const full = hasCapacity && applied >= e.capacity
   const deadlineDays = daysUntil(e.applicationDeadline)
+  const deadlinePassed = deadlineDays !== null && deadlineDays < 0
+
   return {
+    method,
+    capacity: e.capacity,
     applied,
     remaining,
     fillRate,
+    ratio,
+    full,
     deadlineDays,
-    scarce: remaining !== null && (remaining <= 2 || fillRate >= 0.8) && remaining > 0,
+    // 先着でしか「残りわずか」は起きない。抽選は埋まっても受付が続く。
+    scarce: method === 'first_come' && remaining !== null && remaining > 0 && (remaining <= 2 || fillRate >= 0.8),
+    competitive: method === 'lottery' && ratio !== null && ratio > 1,
     urgent: deadlineDays !== null && deadlineDays >= 0 && deadlineDays <= 3,
     closed:
       e.status === 'closed' ||
-      remaining === 0 ||
-      (deadlineDays !== null && deadlineDays < 0) ||
+      // 抽選は枠が埋まっても締切まで受け付ける。ここが先着との決定的な違い。
+      (method === 'first_come' && full) ||
+      deadlinePassed ||
       isPast(e.startAt),
   }
+}
+
+export const SELECTION_LABEL: Record<EventRecord['selectionMethod'], string> = {
+  first_come: '先着順',
+  lottery: '抽選',
+}
+
+/** 出店者が「今どう動けばいいか」を1行で。 */
+export const SELECTION_HINT: Record<EventRecord['selectionMethod'], string> = {
+  first_come: '枠が埋まり次第、受付を終了します',
+  lottery: '締切後に抽選し、結果をメールでお知らせします',
 }
 
 export const POWER_LABEL: Record<EventRecord['power'], string> = {

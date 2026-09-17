@@ -1,6 +1,7 @@
-import { POWER_LABEL, fmtDate, fmtEventDates, yen, type EventStats } from '../lib/format'
+import { CapacityMeter } from './CapacityMeter'
+import { POWER_LABEL, SELECTION_LABEL, fmtDate, fmtEventDates, yen, type EventStats } from '../lib/format'
 import type { EventRecord } from '../lib/types'
-import { Badge, FillBar } from './ui'
+import { Badge } from './ui'
 
 /**
  * デッキに積まれる1枚。上から順に「行きたくなる理由 → 条件 → 残り」を置く。
@@ -28,9 +29,20 @@ export function EventCard({ event, stats }: { event: EventRecord; stats: EventSt
             {fmtEventDates(event)}
           </span>
           <div className="flex flex-col items-end gap-1.5">
+            <Badge
+              tone={stats.method === 'lottery' ? 'neutral' : 'accent'}
+              className="shadow-[0_1px_3px_rgb(0_0_0_/_0.12)]"
+            >
+              {SELECTION_LABEL[stats.method]}
+            </Badge>
             {stats.scarce && (
               <Badge tone="accent" className="shadow-[0_1px_3px_rgb(0_0_0_/_0.12)]">
                 残り{stats.remaining}枠
+              </Badge>
+            )}
+            {stats.competitive && (
+              <Badge tone="accent" className="shadow-[0_1px_3px_rgb(0_0_0_/_0.12)]">
+                応募多数
               </Badge>
             )}
             {stats.urgent && (
@@ -62,19 +74,19 @@ export function EventCard({ event, stats }: { event: EventRecord; stats: EventSt
               label="想定来場"
               value={event.expectedVisitors > 0 ? `${(event.expectedVisitors / 1000).toFixed(1).replace(/\.0$/, '')}千人` : '—'}
             />
-            <Stat label="電源" value={POWER_LABEL[event.power].replace(/（.*）/, '')} />
+            <Stat
+              label="募集枠"
+              value={event.capacity > 0 ? `${event.capacity}枠` : '未定'}
+            />
           </div>
 
-          <div className="space-y-1.5">
-            <FillBar rate={stats.fillRate} />
-            <div className="flex items-center justify-between text-[12px] text-faint tabular">
-              <span>
-                {stats.applied > 0
-                  ? `${stats.applied}店舗が申込済み`
-                  : '募集を開始しました'}
-                {event.capacity > 0 && ` / 全${event.capacity}台`}
+          <div className="space-y-2">
+            <CapacityMeter stats={stats} size="sm" />
+            <div className="flex items-center justify-between gap-3 text-[11.5px] text-faint tabular">
+              <span className="truncate">
+                {POWER_LABEL[event.power].replace(/（.*）/, '')}
               </span>
-              <span>
+              <span className="shrink-0">
                 {event.applicationDeadline ? `締切 ${fmtDate(event.applicationDeadline, { year: false })}` : ''}
               </span>
             </div>

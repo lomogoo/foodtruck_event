@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { EventDetail } from '../../components/EventDetail'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
-import { Badge, Button, Card, EmptyState, FillBar, Segmented, Spinner } from '../../components/ui'
-import { STATUS_LABEL, fmtEventDates, yen } from '../../lib/format'
+import { Badge, Button, Card, EmptyState, Segmented, Spinner } from '../../components/ui'
+import { CapacityMeter } from '../../components/CapacityMeter'
+import { SELECTION_LABEL, STATUS_LABEL, fmtEventDates, yen } from '../../lib/format'
 import { useStore } from '../../lib/store'
 import type { EventRecord } from '../../lib/types'
 import { EventEditor } from './EventEditor'
@@ -85,13 +86,12 @@ export function AdminEvents({ onOpenApplicants }: { onOpenApplicants: (eventId: 
                     <p className="mt-0.5 truncate text-[12.5px] text-muted">
                       {fmtEventDates(e)} ・ {e.venue || '会場未定'} ・ {yen(e.fee)}
                     </p>
-                    <div className="mt-2 space-y-1">
-                      <FillBar rate={s.fillRate} tone={s.remaining === 0 ? 'ok' : 'accent'} />
+                    <div className="mt-2 space-y-1.5">
+                      <CapacityMeter stats={s} size="sm" />
                       <p className="text-[11.5px] text-faint tabular">
-                        申込 {s.applied}件
-                        {e.capacity > 0 && ` / 募集 ${e.capacity}台`}
-                        {s.remaining !== null && s.remaining > 0 && ` ・ 残り${s.remaining}`}
+                        {SELECTION_LABEL[s.method]}
                         {s.deadlineDays !== null && s.deadlineDays >= 0 && ` ・ 締切まで${s.deadlineDays}日`}
+                        {s.deadlineDays !== null && s.deadlineDays < 0 && ' ・ 締切済み'}
                       </p>
                     </div>
                   </div>

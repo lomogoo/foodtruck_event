@@ -53,6 +53,7 @@ const eventToRow = (e: Partial<EventDraft>): Row => {
   set('powerCapacityW', 'power_capacity_w'); set('water', 'water'); set('notes', 'notes')
   set('thumbnailUrl', 'thumbnail_url'); set('attachments', 'attachments')
   set('capacity', 'capacity'); set('applicationDeadline', 'application_deadline')
+  set('selectionMethod', 'selection_method'); set('resultAnnounceAt', 'result_announce_at')
   set('expectedVisitors', 'expected_visitors'); set('organizer', 'organizer')
   set('contactEmail', 'contact_email'); set('cancellationPolicy', 'cancellation_policy')
   set('status', 'status')
@@ -78,6 +79,8 @@ const rowToEvent = (r: Row): EventRecord => ({
   thumbnailUrl: r.thumbnail_url ?? '',
   attachments: r.attachments ?? [],
   capacity: r.capacity ?? 0,
+  selectionMethod: r.selection_method ?? 'first_come',
+  resultAnnounceAt: r.result_announce_at ?? '',
   applicationDeadline: r.application_deadline ?? '',
   expectedVisitors: r.expected_visitors ?? 0,
   organizer: r.organizer ?? '',

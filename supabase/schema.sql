@@ -30,6 +30,9 @@ create table if not exists public.ft_events (
   thumbnail_url       text        not null default '',
   attachments         jsonb       not null default '[]'::jsonb,
   capacity            integer     not null default 0,
+  selection_method    text        not null default 'first_come'
+                        check (selection_method in ('first_come','lottery')),
+  result_announce_at  timestamptz,
   application_deadline timestamptz,
   expected_visitors   integer     not null default 0,
   organizer           text        not null default '',
@@ -43,6 +46,25 @@ create table if not exists public.ft_events (
 
 create index if not exists ft_events_start_at_idx on public.ft_events (start_at);
 create index if not exists ft_events_status_idx   on public.ft_events (status);
+
+-- 既に ft_events を作成済みのプロジェクト向け。再実行しても安全。
+alter table public.ft_events
+  add column if not exists selection_method text not null default 'first_come';
+alter table public.ft_events
+  add column if not exists result_announce_at timestamptz;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.ft_events'::regclass
+      and conname = 'ft_events_selection_method_check'
+  ) then
+    alter table public.ft_events
+      add constraint ft_events_selection_method_check
+      check (selection_method in ('first_come','lottery'));
+  end if;
+end $$;
 
 -- ── 出店申込 ────────────────────────────────────────────────
 create table if not exists public.ft_applications (

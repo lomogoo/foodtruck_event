@@ -2,6 +2,8 @@
 
 export type EventStatus = 'draft' | 'open' | 'closed'
 export type PowerAvailability = 'none' | 'available' | 'negotiable'
+/** 枠の埋め方。先着は埋まり次第締切、抽選は締切まで受け付けて後から選ぶ。 */
+export type SelectionMethod = 'first_come' | 'lottery'
 
 export interface Attachment {
   id: string
@@ -35,8 +37,12 @@ export interface EventRecord {
   notes: string
   thumbnailUrl: string
   attachments: Attachment[]
-  /** 募集区画数。 */
+  /** 募集枠数（出店できる台数）。0 は未定。 */
   capacity: number
+  /** 先着順か抽選か。残枠の意味と締切の挙動が変わる。 */
+  selectionMethod: SelectionMethod
+  /** 抽選結果の通知予定日 ISO 8601。抽選のときだけ意味を持つ。 */
+  resultAnnounceAt: string
   /** 申込締切 ISO 8601。 */
   applicationDeadline: string
   /** 想定来場者数。出店判断で最も効く数字なので必須級に扱う。 */

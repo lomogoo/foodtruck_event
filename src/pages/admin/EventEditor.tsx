@@ -34,6 +34,8 @@ const emptyDraft = (): EventDraft => {
     thumbnailUrl: '',
     attachments: [],
     capacity: 5,
+    selectionMethod: 'first_come',
+    resultAnnounceAt: '',
     applicationDeadline: deadline.toISOString(),
     expectedVisitors: 0,
     organizer: '',
@@ -227,7 +229,7 @@ export function EventEditor({
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="募集台数" hint="残枠の表示に使われます">
+            <Field label="募集枠数" hint="出店できる台数。埋まり具合の分母になります">
               <Input type="number" inputMode="numeric" min={0} value={draft.capacity || ''} onChange={(e) => set('capacity', Number(e.target.value) || 0)} placeholder="8" />
             </Field>
             <Field label="想定来場者数" hint="出店判断で最も効く数字です">
@@ -235,9 +237,33 @@ export function EventEditor({
             </Field>
           </div>
 
+          <div className="space-y-2">
+            <span className="block text-[13px] font-medium">選考方法</span>
+            <Segmented
+              value={draft.selectionMethod}
+              onChange={(v) => set('selectionMethod', v)}
+              options={[
+                { value: 'first_come', label: '先着順' },
+                { value: 'lottery', label: '抽選' },
+              ]}
+              size="sm"
+            />
+            <p className="text-[12px] leading-relaxed text-faint">
+              {draft.selectionMethod === 'lottery'
+                ? '締切まで応募を受け付け、枠が埋まっても締め切りません。締切後に「出店者」タブから抽選を実行できます。'
+                : '枠が埋まった時点で、出店者側の募集一覧から自動的に外れます。'}
+            </p>
+          </div>
+
           <Field label="申込締切">
             <Input type="datetime-local" value={isoToLocalInput(draft.applicationDeadline)} onChange={(e) => set('applicationDeadline', localInputToIso(e.target.value))} />
           </Field>
+
+          {draft.selectionMethod === 'lottery' && (
+            <Field label="抽選結果の通知予定日" hint="出店者の申込画面と完了画面に表示されます">
+              <Input type="datetime-local" value={isoToLocalInput(draft.resultAnnounceAt)} onChange={(e) => set('resultAnnounceAt', localInputToIso(e.target.value))} />
+            </Field>
+          )}
         </section>
 
         <Divider />
