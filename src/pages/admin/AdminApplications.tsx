@@ -3,6 +3,7 @@ import { AttachmentList } from '../../components/AttachmentList'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { Badge, Button, Card, Divider, EmptyState, Input, KV, Segmented, Select } from '../../components/ui'
+import { InboxIcon } from '../../components/icons'
 import { applicationsToCsv, downloadCsv } from '../../lib/csv'
 import { APP_STATUS_LABEL, FIRE_LABEL, GAS_LABEL, fmtDateTime, mm, totalWatt } from '../../lib/format'
 import { useStore } from '../../lib/store'
@@ -109,7 +110,7 @@ export function AdminApplications({
 
       {list.length === 0 ? (
         <EmptyState
-          icon="📥"
+          icon={<InboxIcon size={22} />}
           title="該当する申込はありません"
           description="出店者が申し込むと、ここに届きます。条件を変えて探してみてください。"
         />

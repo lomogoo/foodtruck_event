@@ -4,6 +4,7 @@ import { EventCard } from '../../components/EventCard'
 import { EventDetail } from '../../components/EventDetail'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
+import { ChevronLeftIcon, SparkleIcon } from '../../components/icons'
 import { Button, EmptyState, Spinner } from '../../components/ui'
 import { loadHandled, markHandled, unmarkHandled } from '../../lib/profile'
 import { useStore } from '../../lib/store'
@@ -82,8 +83,12 @@ export function Discover() {
           </p>
         </div>
         {history.length > 0 && (
-          <button onClick={undo} className="text-[13px] font-medium text-muted hover:text-ink">
-            ← 戻す
+          <button
+            onClick={undo}
+            className="flex items-center gap-0.5 text-[13px] font-medium text-muted transition-colors hover:text-ink"
+          >
+            <ChevronLeftIcon size={15} />
+            戻す
           </button>
         )}
       </header>
@@ -120,7 +125,7 @@ export function Discover() {
         {deck.length === 0 && (
           <div className="absolute inset-0 grid place-items-center rounded-[var(--radius-xl)] border border-dashed border-line">
             <EmptyState
-              icon="🎉"
+              icon={<SparkleIcon size={22} />}
               title={open.length > 0 ? 'すべて確認しました' : '現在、募集中のイベントはありません'}
               description={
                 open.length > 0

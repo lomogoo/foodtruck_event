@@ -4,6 +4,7 @@ import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { Badge, Button, Card, EmptyState, Segmented, Spinner } from '../../components/ui'
 import { CapacityMeter } from '../../components/CapacityMeter'
+import { CalendarIcon, TruckIcon } from '../../components/icons'
 import { SELECTION_LABEL, STATUS_LABEL, fmtEventDates, yen } from '../../lib/format'
 import { useStore } from '../../lib/store'
 import type { EventRecord } from '../../lib/types'
@@ -56,7 +57,7 @@ export function AdminEvents({ onOpenApplicants }: { onOpenApplicants: (eventId: 
 
       {list.length === 0 ? (
         <EmptyState
-          icon="📅"
+          icon={<CalendarIcon size={22} />}
           title="イベントがありません"
           description="「＋ 新規」から最初のイベントを作成してください。下書きで保存して、あとから公開もできます。"
           action={<Button accent onClick={() => setEditing('new')}>イベントを作成</Button>}
@@ -72,7 +73,9 @@ export function AdminEvents({ onOpenApplicants }: { onOpenApplicants: (eventId: 
                     {e.thumbnailUrl ? (
                       <img src={e.thumbnailUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="grid h-full place-items-center text-[22px] opacity-30">🚐</div>
+                      <div className="grid h-full place-items-center text-faint">
+                        <TruckIcon size={24} />
+                      </div>
                     )}
                   </div>
 

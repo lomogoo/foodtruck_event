@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { ChevronRightIcon, ClipboardIcon, TruckIcon } from '../components/icons'
 import { Badge } from '../components/ui'
 import { useStore } from '../lib/store'
 
@@ -17,7 +18,6 @@ export function Landing() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="space-y-3 text-center"
       >
-        <div className="text-[40px] leading-none">🚐</div>
         <h1 className="text-[32px] font-semibold leading-tight tracking-tight">
           出店を、
           <br />
@@ -41,7 +41,7 @@ export function Landing() {
         className="space-y-3"
       >
         <RoleCard
-          emoji="🍳"
+          icon={<TruckIcon size={24} />}
           title="出店者として使う"
           description="募集中のイベントを見て、その場で申し込む"
           cta="イベントをさがす"
@@ -49,7 +49,7 @@ export function Landing() {
           onClick={() => navigate('/vendor')}
         />
         <RoleCard
-          emoji="📋"
+          icon={<ClipboardIcon size={24} />}
           title="主催者として使う"
           description="イベントの公開・編集、出店者の確認、案内メールの作成"
           cta="管理画面へ"
@@ -65,14 +65,14 @@ export function Landing() {
 }
 
 function RoleCard({
-  emoji,
+  icon,
   title,
   description,
   cta,
   onClick,
   accent,
 }: {
-  emoji: string
+  icon: React.ReactNode
   title: string
   description: string
   cta: string
@@ -91,14 +91,15 @@ function RoleCard({
       ].join(' ')}
     >
       <div className="flex items-start gap-4">
-        <span className="text-[26px] leading-none">{emoji}</span>
+        <span className={accent ? 'mt-0.5 opacity-80' : 'mt-0.5 text-muted'}>{icon}</span>
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] font-semibold tracking-tight">{title}</span>
           <span className={['mt-1 block text-[13px] leading-relaxed', accent ? 'opacity-70' : 'text-muted'].join(' ')}>
             {description}
           </span>
-          <span className={['mt-3 block text-[13px] font-medium', accent ? '' : 'text-accent'].join(' ')}>
-            {cta} →
+          <span className={['mt-3 flex items-center gap-1 text-[13px] font-medium', accent ? '' : 'text-accent'].join(' ')}>
+            {cta}
+            <ChevronRightIcon size={15} />
           </span>
         </span>
       </div>

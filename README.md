@@ -4,10 +4,10 @@
 出店者はイベントをスワイプで見て、その場で申し込めます。主催者はイベントを公開し、申込を受け取り、
 募集案内のメール文面をワンタップで生成できます。
 
-- 📱 スマートフォン前提の UI（スワイプ + タップ）
-- 🎨 引き算のデザイン / ライト・ダーク対応
-- 🗂 ログイン不要で出店申込、主催者のみログイン
-- ☁️ データは Supabase（Postgres + Storage）で管理。RLS で出店者と主催者の権限を分離
+- スマートフォン前提の UI（スワイプ + タップ）
+- 引き算のデザイン / ライト・ダーク対応。アイコンはすべて自前のSVG（絵文字は不使用）
+- ログイン不要で出店申込、主催者のみログイン
+- データは Supabase（Postgres + Storage）で管理。RLS で出店者と主催者の権限を分離
 
 ---
 
@@ -202,6 +202,7 @@ GitHub Pages へ自動デプロイされます（`.github/workflows/deploy.yml`�
 
 ```
 supabase/schema.sql   テーブル・RLS・ストレージの定義（SQL Editor に貼る実体）
+supabase/seed-events-2026-10.sql  イベント登録用SQL（再実行しても重複しない）
 
 src/
   lib/
@@ -215,6 +216,7 @@ src/
     schemaSql.ts      supabase/schema.sql を読み込むだけの薄い橋渡し
     seed.ts           端末内モード用のサンプルデータ
   components/         UIプリミティブ、シート、トースト、イベントカード、枠メーター
+    icons.tsx       画面で使うSVGアイコン一式（24×24・線幅1.6・currentColor）
   pages/
     Landing.tsx
     vendor/           さがす（デッキ）/ 申込フォーム / 申込状況

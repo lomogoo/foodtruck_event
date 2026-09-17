@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { FolderIcon } from './icons'
 
 export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ')
 
@@ -307,19 +308,21 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 export function EmptyState({
-  icon = '🗂',
+  icon,
   title,
   description,
   action,
 }: {
-  icon?: string
+  icon?: ReactNode
   title: string
   description?: string
   action?: ReactNode
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <div className="text-[34px] leading-none opacity-60">{icon}</div>
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-[var(--c-surface-2)] text-muted">
+        {icon ?? <FolderIcon size={22} />}
+      </div>
       <h3 className="text-[16px] font-semibold">{title}</h3>
       {description && <p className="max-w-xs text-[13.5px] text-muted leading-relaxed">{description}</p>}
       {action}

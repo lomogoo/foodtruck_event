@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { AlertIcon, CheckIcon } from './icons'
 
 type ToastTone = 'default' | 'ok' | 'error'
 interface Toast {
@@ -35,10 +36,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-              className="pointer-events-auto max-w-[min(92vw,420px)] rounded-full bg-[var(--c-ink)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--c-surface)] shadow-[var(--shadow-float)]"
+              className="pointer-events-auto flex max-w-[min(92vw,420px)] items-center gap-2 rounded-full bg-[var(--c-ink)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--c-surface)] shadow-[var(--shadow-float)]"
             >
-              <span className="mr-1.5">{t.tone === 'ok' ? '✓' : t.tone === 'error' ? '!' : ''}</span>
-              {t.message}
+              {t.tone === 'ok' && <CheckIcon size={16} className="shrink-0" />}
+              {t.tone === 'error' && <AlertIcon size={16} className="shrink-0" />}
+              <span>{t.message}</span>
             </motion.div>
           ))}
         </AnimatePresence>

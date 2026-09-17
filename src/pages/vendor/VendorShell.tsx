@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ChevronLeftIcon } from '../../components/icons'
 import { cx } from '../../components/ui'
 import { Discover } from './Discover'
 import { MyApplications } from './MyApplications'
@@ -17,9 +18,10 @@ export function VendorShell() {
       <div className="mx-auto w-full max-w-[560px] px-4 pt-2">
         <button
           onClick={() => navigate('/')}
-          className="text-[12.5px] text-muted transition-colors hover:text-ink"
+          className="flex items-center gap-0.5 text-[12.5px] text-muted transition-colors hover:text-ink"
         >
-          ← トップ
+          <ChevronLeftIcon size={14} />
+          トップ
         </button>
       </div>
 

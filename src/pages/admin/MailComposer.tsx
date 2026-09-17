@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { MailIcon } from '../../components/icons'
 import { useToast } from '../../components/Toast'
 import { Badge, Button, Card, Divider, EmptyState, Field, Input, Segmented, cx } from '../../components/ui'
 import { STATUS_LABEL, fmtEventDates, yen } from '../../lib/format'
@@ -78,7 +79,7 @@ export function MailComposer() {
   if (candidates.length === 0) {
     return (
       <EmptyState
-        icon="✉️"
+        icon={<MailIcon size={22} />}
         title="文面にできるイベントがありません"
         description="下書き以外のイベントが対象です。イベントを公開してからお試しください。"
       />

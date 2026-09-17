@@ -1,6 +1,7 @@
 import { CapacityMeter } from './CapacityMeter'
 import { POWER_LABEL, SELECTION_LABEL, fmtDate, fmtEventDates, yen, type EventStats } from '../lib/format'
 import type { EventRecord } from '../lib/types'
+import { TruckIcon } from './icons'
 import { Badge } from './ui'
 
 /**
@@ -21,7 +22,9 @@ export function EventCard({ event, stats }: { event: EventRecord; stats: EventSt
             className="h-full w-full object-cover select-none"
           />
         ) : (
-          <div className="grid h-full w-full place-items-center text-[44px] opacity-25">🚐</div>
+          <div className="grid h-full w-full place-items-center text-faint">
+            <TruckIcon size={44} />
+          </div>
         )}
 
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3.5">

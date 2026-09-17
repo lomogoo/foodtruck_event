@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { EventDetail } from '../../components/EventDetail'
 import { Sheet } from '../../components/Sheet'
+import { ClipboardIcon } from '../../components/icons'
 import { Badge, Card, EmptyState, KV } from '../../components/ui'
 import { APP_STATUS_LABEL, fmtDateTime, fmtEventDates, yen } from '../../lib/format'
 import { loadSubmissions } from '../../lib/profile'
@@ -48,7 +49,7 @@ export function MyApplications() {
 
       {rows.length === 0 ? (
         <EmptyState
-          icon="📋"
+          icon={<ClipboardIcon size={22} />}
           title="まだ申込はありません"
           description="「さがす」タブでイベントを右にスワイプすると、ここに記録されます。"
         />

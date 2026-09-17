@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { bytes } from '../lib/format'
 import { useStore } from '../lib/store'
 import type { Attachment } from '../lib/types'
+import { FileEditIcon, FileTextIcon, ImageIcon, PaperclipIcon, TableIcon } from './icons'
 
-const icon = (mime: string, name: string) => {
+const iconFor = (mime: string, name: string): ReactNode => {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  if (mime.startsWith('image/')) return '🖼'
-  if (mime === 'application/pdf' || ext === 'pdf') return '📄'
-  if (['xls', 'xlsx', 'csv'].includes(ext)) return '📊'
-  if (['doc', 'docx'].includes(ext)) return '📝'
-  return '📎'
+  if (mime.startsWith('image/')) return <ImageIcon size={18} />
+  if (mime === 'application/pdf' || ext === 'pdf') return <FileTextIcon size={18} />
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return <TableIcon size={18} />
+  if (['doc', 'docx'].includes(ext)) return <FileEditIcon size={18} />
+  return <PaperclipIcon size={18} />
 }
 
 /** 添付をダウンロード可能なリンクとして並べる。ローカル保存分は都度 objectURL に解決する。 */
@@ -44,7 +45,7 @@ export function AttachmentList({
           key={a.id}
           className="flex items-center gap-3 rounded-[var(--radius-sm)] border border-line bg-surface px-3 py-2.5"
         >
-          <span className="text-[17px] leading-none">{icon(a.mime, a.name)}</span>
+          <span className="shrink-0 text-muted">{iconFor(a.mime, a.name)}</span>
           <a
             href={urls[a.id] || undefined}
             target="_blank"

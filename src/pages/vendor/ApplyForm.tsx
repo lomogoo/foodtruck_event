@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useDragControls } from 'framer-motion'
 import { useMemo, useRef, useState } from 'react'
 import { AttachmentList } from '../../components/AttachmentList'
 import { CapacityMeter } from '../../components/CapacityMeter'
+import { PaperclipIcon } from '../../components/icons'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import {
@@ -707,7 +708,7 @@ function StepDocs({
       <div className="space-y-2">
         <p className="text-[13px] font-medium">書類の添付</p>
         <p className="text-[12.5px] leading-relaxed text-faint">
-          運転免許証・車検証・food 営業許可証・保険証書など。PDFまたは画像（1ファイル20MBまで）。
+          運転免許証・車検証・食品営業許可証・保険証書など。PDFまたは画像（1ファイル20MBまで）。
           この場で用意できない場合は、あとから主催者にメールで送っても構いません。
         </p>
       </div>
@@ -723,7 +724,9 @@ function StepDocs({
             e.target.value = ''
           }}
         />
-        <span className="block text-[26px] leading-none opacity-50">📎</span>
+        <span className="mx-auto mb-1 grid h-10 w-10 place-items-center rounded-full bg-[var(--c-surface-2)] text-muted">
+          <PaperclipIcon size={20} />
+        </span>
         <span className="mt-2 block text-[14px] font-medium">ファイルを選ぶ</span>
         <span className="mt-0.5 block text-[12px] text-faint">複数選択できます</span>
       </label>

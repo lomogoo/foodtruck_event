@@ -25,11 +25,21 @@ const base: Omit<EventDraft, 'title' | 'summary' | 'venue' | 'address' | 'startA
   status: 'open',
 }
 
-/** グラデーションのSVGサムネ。外部画像に依存せずカードを成立させる。 */
-const thumb = (a: string, b: string, emoji: string) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="800" height="500" fill="url(#g)"/><text x="400" y="300" font-size="180" text-anchor="middle">${emoji}</text></svg>`,
+/**
+ * サムネイル未設定時のプレースホルダ。外部画像に依存せず、絵文字も使わずに
+ * カードの面を成立させるための、幾何形だけで組んだ SVG。
+ */
+const thumb = (a: string, b: string, variant: 1 | 2 | 3 | 4) => {
+  const shapes = {
+    1: '<circle cx="250" cy="250" r="150" fill="#fff" opacity=".13"/><circle cx="560" cy="330" r="220" fill="#fff" opacity=".10"/><circle cx="400" cy="250" r="90" fill="#fff" opacity=".14"/>',
+    2: '<path d="M0 360 Q200 250 400 340 T800 300 V500 H0Z" fill="#fff" opacity=".12"/><path d="M0 420 Q220 330 420 410 T800 380 V500 H0Z" fill="#fff" opacity=".10"/><circle cx="620" cy="140" r="64" fill="#fff" opacity=".16"/>',
+    3: '<rect x="90" y="150" width="180" height="260" rx="14" fill="#fff" opacity=".13"/><rect x="310" y="90" width="180" height="320" rx="14" fill="#fff" opacity=".16"/><rect x="530" y="200" width="180" height="210" rx="14" fill="#fff" opacity=".11"/>',
+    4: '<path d="M400 90 L640 250 L400 410 L160 250Z" fill="#fff" opacity=".13"/><path d="M400 170 L560 250 L400 330 L240 250Z" fill="#fff" opacity=".16"/>',
+  }[variant]
+  return `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="800" height="500" fill="url(#g)"/>${shapes}</svg>`,
   )}`
+}
 
 const SEEDS: EventDraft[] = [
   {
@@ -46,7 +56,7 @@ const SEEDS: EventDraft[] = [
     resultAnnounceAt: day(12, 18),
     applicationDeadline: day(9, 23, 59),
     expectedVisitors: 8000,
-    thumbnailUrl: thumb('#FFB36B', '#FF5A24', '🌸'),
+    thumbnailUrl: thumb('#FFB36B', '#FF5A24', 1),
   },
   {
     ...base,
@@ -64,7 +74,7 @@ const SEEDS: EventDraft[] = [
     applicationDeadline: day(2, 23, 59),
     expectedVisitors: 4500,
     powerCapacityW: 2000,
-    thumbnailUrl: thumb('#5B6CFF', '#1B1F3B', '🌃'),
+    thumbnailUrl: thumb('#5B6CFF', '#1B1F3B', 2),
   },
   {
     ...base,
@@ -86,7 +96,7 @@ const SEEDS: EventDraft[] = [
     power: 'negotiable',
     powerCapacityW: 0,
     water: true,
-    thumbnailUrl: thumb('#38D39F', '#0E6B52', '🏢'),
+    thumbnailUrl: thumb('#38D39F', '#0E6B52', 3),
   },
   {
     ...base,
@@ -103,7 +113,7 @@ const SEEDS: EventDraft[] = [
     resultAnnounceAt: '',
     applicationDeadline: day(38, 23, 59),
     expectedVisitors: 3000,
-    thumbnailUrl: thumb('#F6C453', '#C2410C', '🍂'),
+    thumbnailUrl: thumb('#F6C453', '#C2410C', 4),
   },
 ]
 
